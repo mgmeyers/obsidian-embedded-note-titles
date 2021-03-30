@@ -1,6 +1,6 @@
 ## Obsidian Embedded Note Titles Plugin
 
-This plugin embeds the note title at the top of each note in both preview and edit mode.
+This plugin embeds the note title at the top of each note in both preview and edit mode. This plugin does not modify notes, and the title is not a part of the document itself.
 
 <img src="https://raw.githubusercontent.com/mgmeyers/obsidian-embedded-note-titles/main/screenshots/example01.gif" alt="Example output of plugin" />
 
