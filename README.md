@@ -2,7 +2,7 @@
 
 This plugin embeds the note title at the top of each note in both preview and edit mode.
 
-<img src="https://raw.githubusercontent.com/mgmeyers/obsidian-embedded-note-titles/main/screenshots/example01.png" alt="Example output of plugin" />
+<img src="https://raw.githubusercontent.com/mgmeyers/obsidian-embedded-note-titles/main/screenshots/example01.gif" alt="Example output of plugin" />
 
 
 ### Note
