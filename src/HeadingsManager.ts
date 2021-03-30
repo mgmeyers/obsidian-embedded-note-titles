@@ -1,4 +1,4 @@
-import { App, WorkspaceLeaf } from "obsidian";
+import { App, WorkspaceLeaf, debounce } from "obsidian";
 import { getMatchedCSSRules } from "./getMatchedCSSRules";
 
 interface RefSizing {
@@ -40,7 +40,7 @@ const keyMap: { [k: string]: string } = {
 
 // Get the relevant style values from a reference element
 function getRefSizing(el: HTMLElement) {
-  const rules = getMatchedCSSRules(el).reverse();
+  const rules = getMatchedCSSRules(el);
   const sizing: RefSizing = {};
 
   rules.forEach((r) => {
@@ -239,25 +239,19 @@ export class HeadingsManager {
       h1Edit.id = `${id}-edit`;
       editEl.prepend(h1Edit);
 
-      let debounceTimer = 0;
+      const onResize = debounce((entries: any) => {
+          if (lines.length) {
+            const linesEl = lines[0] as HTMLDivElement;
+            const height = Math.ceil(entries[0].borderBoxSize[0].blockSize);
+
+            linesEl.style.paddingTop = `${height}px`;
+            h1Edit.style.marginBottom = `-${height}px`;
+          }
+      }, 20, true)
 
       // We need to push the content down when the pane resizes so the heading
       // doesn't cover the content
-      const resizeWatcher = new (window as any).ResizeObserver(
-        (entries: any) => {
-          clearTimeout(debounceTimer);
-
-          debounceTimer = window.setTimeout(() => {
-            if (lines.length) {
-              const linesEl = lines[0] as HTMLDivElement;
-              const height = Math.ceil(entries[0].borderBoxSize[0].blockSize);
-
-              linesEl.style.paddingTop = `${height}px`;
-              h1Edit.style.marginBottom = `-${height}px`;
-            }
-          }, 20);
-        }
-      );
+      const resizeWatcher = new (window as any).ResizeObserver(onResize);
 
       resizeWatcher.observe(h1Edit);
       

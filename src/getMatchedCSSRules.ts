@@ -100,8 +100,8 @@ function sortBySpecificity(element: HTMLElement, rules: CSSStyleRule[]) {
     }
 
     return (
-      bScore -
-      aScore
+      aScore -
+      bScore
     );
   }
 
