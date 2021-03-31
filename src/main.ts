@@ -27,8 +27,10 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
       })
     );
 
-    // Trigger layout-change to ensure headings are created when the app loads
-    this.app.workspace.trigger("layout-change");
+    this.app.workspace.onLayoutReady(() => {
+      // Trigger layout-change to ensure headings are created when the app loads
+      this.app.workspace.trigger("layout-change");
+    })
   }
 
   onunload() {
