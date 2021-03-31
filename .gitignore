@@ -1,6 +1,7 @@
 # Intellij
 *.iml
 .idea
+.env
 
 # npm
 node_modules
