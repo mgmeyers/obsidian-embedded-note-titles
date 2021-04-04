@@ -7,7 +7,7 @@ This plugin embeds the note title at the top of each note in both preview and ed
 
 ### Note
 
-In general, this plugin attempts to size the titles to align with the note content. Some themes may have styling that conflicts with these calculations. If you notice misalignment between the title and the note, the titles can be styles via css like so:
+In general, this plugin attempts to size the titles to align with the note content. Some themes may have styling that conflicts with these calculations. If you notice misalignment between the title and the note, the titles can be styled via css like so:
 
 ```css
 .embedded-note-titles .markdown-preview-view > h1 {
