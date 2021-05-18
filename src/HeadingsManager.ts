@@ -125,7 +125,7 @@ export class HeadingsManager {
 
       const { marginLeft, paddingRight, borderRightWidth } = sizer.style;
 
-      // If codemirror hasn't applied styles to the div yet, let's consider it 
+      // If codemirror hasn't applied styles to the div yet, let's consider it
       // invalid so we can check it again later
       if (marginLeft !== "0px" && paddingRight !== "0px") {
         this.codeMirrorSizerInvalid = false;
@@ -163,7 +163,6 @@ export class HeadingsManager {
       }
     }
   }
-
 
   // Once the codemirror heading styles have been validated, loop through and update everything
   updateCodeMirrorHeadings() {
@@ -208,13 +207,11 @@ export class HeadingsManager {
 
     if (!title) return;
 
-    const viewContent = leaf.view.containerEl.getElementsByClassName(
-      "CodeMirror-scroll"
-    );
+    const viewContent =
+      leaf.view.containerEl.getElementsByClassName("CodeMirror-scroll");
 
-    const lines = leaf.view.containerEl.getElementsByClassName(
-      "CodeMirror-lines"
-    );
+    const lines =
+      leaf.view.containerEl.getElementsByClassName("CodeMirror-lines");
 
     const previewContent = leaf.view.containerEl.getElementsByClassName(
       "markdown-preview-view"
@@ -239,7 +236,8 @@ export class HeadingsManager {
       h1Edit.id = `${id}-edit`;
       editEl.prepend(h1Edit);
 
-      const onResize = debounce((entries: any) => {
+      const onResize = debounce(
+        (entries: any) => {
           if (lines.length) {
             const linesEl = lines[0] as HTMLDivElement;
             const height = Math.ceil(entries[0].borderBoxSize[0].blockSize);
@@ -247,14 +245,17 @@ export class HeadingsManager {
             linesEl.style.paddingTop = `${height}px`;
             h1Edit.style.marginBottom = `-${height}px`;
           }
-      }, 20, true)
+        },
+        20,
+        true
+      );
 
       // We need to push the content down when the pane resizes so the heading
       // doesn't cover the content
       const resizeWatcher = new (window as any).ResizeObserver(onResize);
 
       resizeWatcher.observe(h1Edit);
-      
+
       // Create the preview heading
       const previewEl = previewContent[0] as HTMLDivElement;
       const h1Preview = document.createElement("h1");
@@ -274,13 +275,7 @@ export class HeadingsManager {
     const viewState = leaf.getViewState();
 
     if (viewState.type === "markdown") {
-      return (
-        "title-" +
-        (((leaf as any).id as string) + viewState.state.file).replace(
-          /^[^a-z]+|[^\w:.-]+/gi,
-          ""
-        )
-      );
+      return "title-" + Math.random().toString(36).substr(2, 9);
     }
 
     return null;
@@ -305,7 +300,7 @@ export class HeadingsManager {
       }
     });
   }
-  
+
   cleanup() {
     this.previewSizerRef = null;
     this.codeMirrorSizerRef = null;
