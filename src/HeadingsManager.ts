@@ -234,6 +234,7 @@ export class HeadingsManager {
 
       h1Edit.setText(title);
       h1Edit.id = `${id}-edit`;
+      h1Edit.classList.add('embedded-note-title', 'embedded-note-title__edit')
       editEl.prepend(h1Edit);
 
       const onResize = debounce(
@@ -264,6 +265,7 @@ export class HeadingsManager {
 
       h1Preview.setText(title);
       h1Preview.id = `${id}-preview`;
+      h1Preview.classList.add('embedded-note-title', 'embedded-note-title__preview')
       previewEl.prepend(h1Preview);
 
       this.headings[id] = { leaf, resizeWatcher };
