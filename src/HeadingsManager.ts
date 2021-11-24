@@ -313,16 +313,20 @@ export class HeadingsManager {
       const editEl = viewContent[0] as HTMLDivElement;
       let h1Edit: any;
       if(this.livePreview){
+        // Create a flex container for the header 
         h1Edit = document.createElement("div");
         h1Edit.className="embedded-note-title-container";
+        h1Edit.style.display = 'flex';
+        h1Edit.style.alignItems = 'flex-start';
+
+        // Create the title and add it to the container
         let titleEl = document.createElement("h1")
         titleEl.setText(title);
         titleEl.className="embedded-note-title";
-        titleEl.style.flex = '1 1 auto';
-        h1Edit.style.display = 'flex';
-        h1Edit.style.alignItems = 'flex-start';
+        titleEl.style.flex = '1 1 auto'
         h1Edit.prepend(titleEl);
-        //Create a dummy gutter
+
+        //Create a dummy gutter to keep the header aligned with the content
         let gutterEl = document.createElement("div");
         gutterEl.className = "embedded-note-title-gutter";
         h1Edit.prepend(gutterEl);
