@@ -1,4 +1,6 @@
-import { App, WorkspaceLeaf, debounce } from "obsidian";
+import { App, WorkspaceLeaf, debounce, moment } from "obsidian";
+import {MySettings, getDailyNoteFormat} from "./settings";
+
 import { getMatchedCSSRules } from "./getMatchedCSSRules";
 
 interface RefSizing {
@@ -106,13 +108,62 @@ export class HeadingsManager {
 
   previewSizerRef: RefSizing | null = null;
   codeMirrorSizerRef: RefSizing | null = null;
+  livePreviewHeaderContainerSizerRef: RefSizing |null = null;
+  livePreviewHeaderGutterSizerRef: RefSizing | null = null;
+  livePreviewHeaderSizerRef: RefSizing | null;
+  outerSizerRef: RefSizing | null = null;
+  spacerSizerRef: RefSizing | null = null;
   codeMirrorSizerInvalid: boolean = true;
+  livePreview: boolean = false;
+  settings: MySettings;
+
+  constructor(settings: MySettings){
+    this.settings = settings;
+  }
+
 
   getPreviewSizerStyles() {
     const el = document.getElementsByClassName("markdown-preview-sizer");
 
     if (el.length) {
       this.previewSizerRef = getRefSizing(el[0] as HTMLElement);
+    }
+  }
+
+
+  getLivePreviewSizerStyles(){
+    this.codeMirrorSizerInvalid = false;
+    this.codeMirrorSizerRef = {};
+
+    // Get the settings for the heading container
+    const scrollerEl = document.getElementsByClassName("cm-scroller");
+    this.livePreviewHeaderContainerSizerRef = {};
+    if(scrollerEl.length){
+      const scroller = scrollerEl[0] as HTMLElement;
+      const sizerRef = getRefSizing(scroller);
+      this.livePreviewHeaderContainerSizerRef.paddingLeft = sizerRef.paddingLeft;
+      this.livePreviewHeaderContainerSizerRef.paddingRight = sizerRef.paddingRight;
+    }
+
+    // Get the settings for the dummy gutter
+    const rightTriangles = document.getElementsByClassName("right-triangle");
+    this.livePreviewHeaderGutterSizerRef = {width: '8px'};
+    const gutters = document.getElementsByClassName("cm-gutters");
+    if(gutters.length){
+      const gutter = gutters[0] as HTMLElement;
+      const gutterSizerRef = getRefSizing(gutter);
+      this.livePreviewHeaderGutterSizerRef.paddingRight = gutterSizerRef.paddingRight;
+      this.livePreviewHeaderGutterSizerRef.marginLeft = gutterSizerRef.marginLeft;
+    }
+    
+    // Get the settings for the header itself
+    this.livePreviewHeaderSizerRef = {};
+    const contentEl = document.getElementsByClassName("cm-content");
+    if (contentEl.length) {
+      const content = contentEl[0] as HTMLElement;
+      const contentSizing = getRefSizing(content);
+      this.livePreviewHeaderSizerRef.maxWidth = contentSizing.maxWidth;
+      this.livePreviewHeaderSizerRef.marginRight = 'auto';
     }
   }
 
@@ -168,8 +219,18 @@ export class HeadingsManager {
   updateCodeMirrorHeadings() {
     Object.keys(this.headings).forEach((id) => {
       const h1Edit = document.getElementById(`${id}-edit`);
-      applyRefStyles(h1Edit, this.codeMirrorSizerRef);
+      this.applyStyles(h1Edit);
     });
+  }
+
+  applyStyles(h1Edit : HTMLElement){
+      if(this.livePreview){
+        applyRefStyles(h1Edit, this.livePreviewHeaderContainerSizerRef);
+        applyRefStyles(h1Edit.firstChild as HTMLElement, this.livePreviewHeaderGutterSizerRef);
+        applyRefStyles(h1Edit.firstChild.nextSibling as HTMLElement, this.livePreviewHeaderSizerRef);
+      } else {
+        applyRefStyles(h1Edit, this.codeMirrorSizerRef);
+      }
   }
 
   // Clean up headings once a pane has been closed or the plugin has been disabled
@@ -188,13 +249,23 @@ export class HeadingsManager {
     delete this.headings[id];
   }
 
+
+  getStyles(){
+    if(this.livePreview){
+      this.getLivePreviewSizerStyles();
+    } else {
+      this.getCodeMirrorSizerStyles();
+    }
+  }
+
+  
   createHeading(id: string, leaf: WorkspaceLeaf) {
     // CodeMirror adds margin and padding only after the editor is visible
     if (
       this.codeMirrorSizerInvalid &&
       leaf.getViewState().state?.mode === "source"
     ) {
-      this.getCodeMirrorSizerStyles();
+      this.getStyles();
 
       if (!this.codeMirrorSizerInvalid) {
         this.updateCodeMirrorHeadings();
@@ -203,15 +274,27 @@ export class HeadingsManager {
 
     if (this.headings[id]) return;
 
-    const title = (leaf.view as any).file?.basename;
+    let title = (leaf.view as any).file?.basename;
 
     if (!title) return;
 
+    // Check if the title is a date and if so convert it
+    if (this.settings.convertDailyNoteTitles){
+      let dailyNoteFormat = getDailyNoteFormat();
+      if (moment(title,dailyNoteFormat,true).isValid()){
+        title = moment(title,dailyNoteFormat).format(this.settings.dateDisplayFormat);
+      }
+    }
+    
+
+    const editorClass = this.livePreview ? "cm-editor" : "CodeMirror-scroll";
+    const lineClass = this.livePreview ? "cm-line" : "CodeMirror-lines";
+
     const viewContent =
-      leaf.view.containerEl.getElementsByClassName("CodeMirror-scroll");
+      leaf.view.containerEl.getElementsByClassName(editorClass);
 
     const lines =
-      leaf.view.containerEl.getElementsByClassName("CodeMirror-lines");
+      leaf.view.containerEl.getElementsByClassName(lineClass);
 
     const previewContent = leaf.view.containerEl.getElementsByClassName(
       "markdown-preview-view"
@@ -222,23 +305,41 @@ export class HeadingsManager {
     }
 
     if (!this.codeMirrorSizerRef) {
-      this.getCodeMirrorSizerStyles();
+      this.getStyles();
     }
 
     if (viewContent.length && previewContent.length) {
       // Create the codemirror heading
       const editEl = viewContent[0] as HTMLDivElement;
-      const h1Edit = document.createElement("h1");
-
-      applyRefStyles(h1Edit, this.codeMirrorSizerRef);
-
-      h1Edit.setText(title);
+      let h1Edit: any;
+      if(this.livePreview){
+        h1Edit = document.createElement("div");
+        h1Edit.className="embedded-note-title-container";
+        let titleEl = document.createElement("h1")
+        titleEl.setText(title);
+        titleEl.className="embedded-note-title";
+        titleEl.style.flex = '1 1 auto';
+        h1Edit.style.display = 'flex';
+        h1Edit.style.alignItems = 'flex-start';
+        h1Edit.prepend(titleEl);
+        //Create a dummy gutter
+        let gutterEl = document.createElement("div");
+        gutterEl.className = "embedded-note-title-gutter";
+        h1Edit.prepend(gutterEl);
+      } else {
+        h1Edit = document.createElement("h1");
+        h1Edit.className="embedded-note-title";
+        h1Edit.setText(title);
+      }
+            
       h1Edit.id = `${id}-edit`;
+      this.applyStyles(h1Edit);
+
       editEl.prepend(h1Edit);
 
       const onResize = debounce(
         (entries: any) => {
-          if (lines.length) {
+          if (lines.length && !this.livePreview) {
             const linesEl = lines[0] as HTMLDivElement;
             const height = Math.ceil(entries[0].borderBoxSize[0].blockSize);
 
@@ -253,22 +354,22 @@ export class HeadingsManager {
       // We need to push the content down when the pane resizes so the heading
       // doesn't cover the content
       const resizeWatcher = new (window as any).ResizeObserver(onResize);
-
       resizeWatcher.observe(h1Edit);
 
       // Create the preview heading
       const previewEl = previewContent[0] as HTMLDivElement;
       const h1Preview = document.createElement("h1");
-
       applyRefStyles(h1Preview, this.previewSizerRef);
 
       h1Preview.setText(title);
+      h1Preview.className="embedded-note-title";
       h1Preview.id = `${id}-preview`;
       previewEl.prepend(h1Preview);
 
       this.headings[id] = { leaf, resizeWatcher };
     }
   }
+
 
   // Generate a unique ID for a leaf
   getLeafId(leaf: WorkspaceLeaf) {
@@ -284,6 +385,7 @@ export class HeadingsManager {
   // Iterate through all leafs and generate headings if needed
   createHeadings(app: App) {
     const seen: { [k: string]: boolean } = {};
+    this.livePreview = (app.vault as any).config?.livePreview ? true : false;
 
     app.workspace.iterateRootLeaves((leaf) => {
       const id = this.getLeafId(leaf);
