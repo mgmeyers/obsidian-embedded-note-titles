@@ -261,9 +261,9 @@ export class HeadingsManager {
   
   createHeading(id: string, leaf: WorkspaceLeaf) {
     // CodeMirror adds margin and padding only after the editor is visible
+    const mode = leaf.getViewState().state?.mode;
     if (
-      this.codeMirrorSizerInvalid &&
-      leaf.getViewState().state?.mode === "source"
+      this.codeMirrorSizerInvalid && mode === "source"
     ) {
       this.getStyles();
 
@@ -360,15 +360,31 @@ export class HeadingsManager {
       const resizeWatcher = new (window as any).ResizeObserver(onResize);
       resizeWatcher.observe(h1Edit);
 
-      // Create the preview heading
-      const previewEl = previewContent[0] as HTMLDivElement;
-      const h1Preview = document.createElement("h1");
-      applyRefStyles(h1Preview, this.previewSizerRef);
+      // If we are in preview mode then create the preview heading
+      if (mode === "preview"){
+        // Create the preview heading
+        // Some elements in previewEL may be embedded elements - we have to 
+        // weed these out.
+        let previewEl : HTMLDivElement;
+        for(let i=0;i < previewContent.length; i++){
+          previewEl = previewContent[i] as HTMLDivElement;
+          if (previewEl.parentNode && previewEl.parentElement.hasClass("markdown-embed-content")){
+            continue;
+          } else {
+            break;
+          }
+        }
 
-      h1Preview.setText(title);
-      h1Preview.className="embedded-note-title";
-      h1Preview.id = `${id}-preview`;
-      previewEl.prepend(h1Preview);
+        if (previewEl){
+          const h1Preview = document.createElement("h1");
+          applyRefStyles(h1Preview, this.previewSizerRef);
+  
+          h1Preview.setText(title);
+          h1Preview.className="embedded-note-title";
+          h1Preview.id = `${id}-preview`;
+          previewEl.prepend(h1Preview);
+        } 
+      }
 
       this.headings[id] = { leaf, resizeWatcher };
     }
