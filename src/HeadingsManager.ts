@@ -1,5 +1,7 @@
-import { App, WorkspaceLeaf, debounce } from "obsidian";
+import { App, WorkspaceLeaf, debounce, MarkdownView } from "obsidian";
 import { getMatchedCSSRules } from "./getMatchedCSSRules";
+import { Settings } from "./settings";
+import { getTitleForView } from "./titleDecoration";
 
 interface RefSizing {
   width?: string;
@@ -88,7 +90,7 @@ function getRefSizing(el: HTMLElement) {
 // Apply reference styles to a heading element
 function applyRefStyles(heading: HTMLElement, ref: RefSizing | null) {
   if (!ref) return;
-  
+
   for (const key in ref) {
     const val = ref[key as keyof RefSizing];
 
@@ -108,6 +110,12 @@ export class LegacyCodemirrorHeadingsManager {
 
   codeMirrorSizerRef: RefSizing | null = null;
   codeMirrorSizerInvalid: boolean = true;
+
+  getSettings: () => Settings;
+
+  constructor(getSettings: () => Settings) {
+    this.getSettings = getSettings;
+  }
 
   getCodeMirrorSizerStyles() {
     const sizerEl = document.getElementsByClassName("CodeMirror-sizer");
@@ -194,9 +202,11 @@ export class LegacyCodemirrorHeadingsManager {
 
     if (this.headings[id]) return;
 
-    const title = (leaf.view as any).file?.basename;
-
-    if (!title) return;
+    const title = getTitleForView(
+      leaf.view.app,
+      this.getSettings(),
+      leaf.view as MarkdownView
+    );
 
     const viewContent =
       leaf.view.containerEl.getElementsByClassName("CodeMirror-scroll");
@@ -218,6 +228,11 @@ export class LegacyCodemirrorHeadingsManager {
       h1Edit.setText(title);
       h1Edit.id = `${id}-edit`;
       h1Edit.classList.add("embedded-note-title", "embedded-note-title__edit");
+
+      if (title === "") {
+        h1Edit.classList.add("embedded-note-title__hidden");
+      }
+
       editEl.prepend(h1Edit);
 
       const onResize = debounce(
@@ -246,20 +261,14 @@ export class LegacyCodemirrorHeadingsManager {
 
   // Generate a unique ID for a leaf
   getLeafId(leaf: WorkspaceLeaf) {
-    const viewState = leaf.getViewState();
-
-    if (viewState.type === "markdown") {
-      return "title-" + Math.random().toString(36).substr(2, 9);
-    }
-
-    return null;
+    return "title-" + Math.random().toString(36).substr(2, 9);
   }
 
   // Iterate through all leafs and generate headings if needed
   createHeadings(app: App) {
     const seen: { [k: string]: boolean } = {};
 
-    app.workspace.iterateRootLeaves((leaf) => {
+    app.workspace.getLeavesOfType("markdown").forEach((leaf) => {
       const id = this.getLeafId(leaf);
 
       if (id) {
@@ -292,6 +301,11 @@ export class PreviewHeadingsManager {
   } = {};
 
   previewSizerRef: RefSizing | null = null;
+  getSettings: () => Settings;
+
+  constructor(getSettings: () => Settings) {
+    this.getSettings = getSettings;
+  }
 
   getPreviewSizerStyles() {
     const el = document.getElementsByClassName("markdown-preview-sizer");
@@ -315,9 +329,11 @@ export class PreviewHeadingsManager {
   createHeading(id: string, leaf: WorkspaceLeaf) {
     if (this.headings[id]) return;
 
-    const title = (leaf.view as any).file?.basename;
-
-    if (!title) return;
+    const title = getTitleForView(
+      leaf.view.app,
+      this.getSettings(),
+      leaf.view as MarkdownView
+    );
 
     const previewContent = leaf.view.containerEl.getElementsByClassName(
       "markdown-preview-view"
@@ -340,6 +356,11 @@ export class PreviewHeadingsManager {
         "embedded-note-title",
         "embedded-note-title__preview"
       );
+
+      if (title === "") {
+        h1Preview.classList.add("embedded-note-title__hidden");
+      }
+
       previewEl.prepend(h1Preview);
 
       this.headings[id] = { leaf };
@@ -348,20 +369,14 @@ export class PreviewHeadingsManager {
 
   // Generate a unique ID for a leaf
   getLeafId(leaf: WorkspaceLeaf) {
-    const viewState = leaf.getViewState();
-
-    if (viewState.type === "markdown") {
-      return "title-" + Math.random().toString(36).substr(2, 9);
-    }
-
-    return null;
+    return "title-" + Math.random().toString(36).substr(2, 9);
   }
 
   // Iterate through all leafs and generate headings if needed
   createHeadings(app: App) {
     const seen: { [k: string]: boolean } = {};
 
-    app.workspace.iterateRootLeaves((leaf) => {
+    app.workspace.getLeavesOfType("markdown").forEach((leaf) => {
       const id = this.getLeafId(leaf);
 
       if (id) {
