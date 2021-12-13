@@ -343,9 +343,17 @@ export class PreviewHeadingsManager {
       this.getPreviewSizerStyles();
     }
 
-    if (previewContent.length) {
+    let previewEl: HTMLDivElement;
+
+    for (let i = 0, len = previewContent.length; i < len; i++) {
+      if (previewContent[i].parentElement.parentElement.hasClass("view-content")) {
+        previewEl = previewContent[i] as HTMLDivElement;
+        break;
+      }
+    }
+
+    if (previewEl) {
       // Create the preview heading
-      const previewEl = previewContent[0] as HTMLDivElement;
       const h1Preview = document.createElement("h1");
 
       applyRefStyles(h1Preview, this.previewSizerRef);
