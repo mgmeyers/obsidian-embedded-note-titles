@@ -11,3 +11,4 @@ package-lock.json
 main.js
 *.js.map
 .DS_Store
+.hotreload

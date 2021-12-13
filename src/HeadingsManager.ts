@@ -86,7 +86,9 @@ function getRefSizing(el: HTMLElement) {
 }
 
 // Apply reference styles to a heading element
-function applyRefStyles(heading: HTMLElement, ref: RefSizing) {
+function applyRefStyles(heading: HTMLElement, ref: RefSizing | null) {
+  if (!ref) return;
+  
   for (const key in ref) {
     const val = ref[key as keyof RefSizing];
 
@@ -96,25 +98,16 @@ function applyRefStyles(heading: HTMLElement, ref: RefSizing) {
   }
 }
 
-export class HeadingsManager {
+export class LegacyCodemirrorHeadingsManager {
   headings: {
     [id: string]: {
       leaf: WorkspaceLeaf;
-      resizeWatcher: ResizeObserver;
+      resizeWatcher?: ResizeObserver;
     };
   } = {};
 
-  previewSizerRef: RefSizing | null = null;
   codeMirrorSizerRef: RefSizing | null = null;
   codeMirrorSizerInvalid: boolean = true;
-
-  getPreviewSizerStyles() {
-    const el = document.getElementsByClassName("markdown-preview-sizer");
-
-    if (el.length) {
-      this.previewSizerRef = getRefSizing(el[0] as HTMLElement);
-    }
-  }
 
   getCodeMirrorSizerStyles() {
     const sizerEl = document.getElementsByClassName("CodeMirror-sizer");
@@ -177,12 +170,10 @@ export class HeadingsManager {
     if (!this.headings[id]) return;
 
     const h1Edit = document.getElementById(`${id}-edit`);
-    const h1Preview = document.getElementById(`${id}-preview`);
 
     if (h1Edit) h1Edit.remove();
-    if (h1Preview) h1Preview.remove();
 
-    this.headings[id].resizeWatcher.disconnect();
+    this.headings[id].resizeWatcher?.disconnect();
 
     delete this.headings[id].resizeWatcher;
     delete this.headings[id];
@@ -213,19 +204,11 @@ export class HeadingsManager {
     const lines =
       leaf.view.containerEl.getElementsByClassName("CodeMirror-lines");
 
-    const previewContent = leaf.view.containerEl.getElementsByClassName(
-      "markdown-preview-view"
-    );
-
-    if (!this.previewSizerRef) {
-      this.getPreviewSizerStyles();
-    }
-
     if (!this.codeMirrorSizerRef) {
       this.getCodeMirrorSizerStyles();
     }
 
-    if (viewContent.length && previewContent.length) {
+    if (viewContent.length) {
       // Create the codemirror heading
       const editEl = viewContent[0] as HTMLDivElement;
       const h1Edit = document.createElement("h1");
@@ -234,7 +217,7 @@ export class HeadingsManager {
 
       h1Edit.setText(title);
       h1Edit.id = `${id}-edit`;
-      h1Edit.classList.add('embedded-note-title', 'embedded-note-title__edit')
+      h1Edit.classList.add("embedded-note-title", "embedded-note-title__edit");
       editEl.prepend(h1Edit);
 
       const onResize = debounce(
@@ -256,17 +239,6 @@ export class HeadingsManager {
       const resizeWatcher = new (window as any).ResizeObserver(onResize);
 
       resizeWatcher.observe(h1Edit);
-
-      // Create the preview heading
-      const previewEl = previewContent[0] as HTMLDivElement;
-      const h1Preview = document.createElement("h1");
-
-      applyRefStyles(h1Preview, this.previewSizerRef);
-
-      h1Preview.setText(title);
-      h1Preview.id = `${id}-preview`;
-      h1Preview.classList.add('embedded-note-title', 'embedded-note-title__preview')
-      previewEl.prepend(h1Preview);
 
       this.headings[id] = { leaf, resizeWatcher };
     }
@@ -304,8 +276,109 @@ export class HeadingsManager {
   }
 
   cleanup() {
-    this.previewSizerRef = null;
     this.codeMirrorSizerRef = null;
+
+    Object.keys(this.headings).forEach((id) => {
+      this.removeHeading(id);
+    });
+  }
+}
+
+export class PreviewHeadingsManager {
+  headings: {
+    [id: string]: {
+      leaf: WorkspaceLeaf;
+    };
+  } = {};
+
+  previewSizerRef: RefSizing | null = null;
+
+  getPreviewSizerStyles() {
+    const el = document.getElementsByClassName("markdown-preview-sizer");
+
+    if (el.length) {
+      this.previewSizerRef = getRefSizing(el[0] as HTMLElement);
+    }
+  }
+
+  // Clean up headings once a pane has been closed or the plugin has been disabled
+  removeHeading(id: string) {
+    if (!this.headings[id]) return;
+
+    const h1Preview = document.getElementById(`${id}-preview`);
+
+    if (h1Preview) h1Preview.remove();
+
+    delete this.headings[id];
+  }
+
+  createHeading(id: string, leaf: WorkspaceLeaf) {
+    if (this.headings[id]) return;
+
+    const title = (leaf.view as any).file?.basename;
+
+    if (!title) return;
+
+    const previewContent = leaf.view.containerEl.getElementsByClassName(
+      "markdown-preview-view"
+    );
+
+    if (!this.previewSizerRef) {
+      this.getPreviewSizerStyles();
+    }
+
+    if (previewContent.length) {
+      // Create the preview heading
+      const previewEl = previewContent[0] as HTMLDivElement;
+      const h1Preview = document.createElement("h1");
+
+      applyRefStyles(h1Preview, this.previewSizerRef);
+
+      h1Preview.setText(title);
+      h1Preview.id = `${id}-preview`;
+      h1Preview.classList.add(
+        "embedded-note-title",
+        "embedded-note-title__preview"
+      );
+      previewEl.prepend(h1Preview);
+
+      this.headings[id] = { leaf };
+    }
+  }
+
+  // Generate a unique ID for a leaf
+  getLeafId(leaf: WorkspaceLeaf) {
+    const viewState = leaf.getViewState();
+
+    if (viewState.type === "markdown") {
+      return "title-" + Math.random().toString(36).substr(2, 9);
+    }
+
+    return null;
+  }
+
+  // Iterate through all leafs and generate headings if needed
+  createHeadings(app: App) {
+    const seen: { [k: string]: boolean } = {};
+
+    app.workspace.iterateRootLeaves((leaf) => {
+      const id = this.getLeafId(leaf);
+
+      if (id) {
+        this.createHeading(id, leaf);
+        seen[id] = true;
+      }
+    });
+
+    Object.keys(this.headings).forEach((id) => {
+      if (!seen[id]) {
+        this.removeHeading(id);
+      }
+    });
+  }
+
+  cleanup() {
+    this.previewSizerRef = null;
 
     Object.keys(this.headings).forEach((id) => {
       this.removeHeading(id);
