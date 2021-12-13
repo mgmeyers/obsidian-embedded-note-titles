@@ -79,6 +79,7 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
         new LegacyCodemirrorHeadingsManager();
     } else {
       const updateTitle = StateEffect.define<boolean>();
+
       const getTitleForView = (view: MarkdownView) => {
         const frontmatterKey = this.settings.titleMetadataField;
 
@@ -87,7 +88,7 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
         if (frontmatterKey && view.file) {
           const cache = this.app.metadataCache.getFileCache(view.file);
 
-          if (cache.frontmatter[frontmatterKey]) {
+          if (cache?.frontmatter && cache.frontmatter[frontmatterKey]) {
             title = cache.frontmatter[frontmatterKey];
           }
         }
