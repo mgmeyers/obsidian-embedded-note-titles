@@ -218,9 +218,9 @@ class EmbeddedNoteTitlesSettings extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName("Curly Quotes")
+      .setName("Metadata field as title")
       .setDesc(
-        "Double and single quotes will be converted to curly quotes (“” & ‘’)"
+        "When a file contains this metadatafield, it will be used as the embedded title"
       )
       .addText((text) => {
         text
