@@ -10,7 +10,17 @@ import {
   EditorView,
   WidgetType,
 } from "@codemirror/view";
-import { App, CachedMetadata, editorViewField, MarkdownView } from "obsidian";
+import {
+  App,
+  CachedMetadata,
+  editorViewField,
+  MarkdownView,
+  TFile,
+} from "obsidian";
+import {
+  getDailyNoteSettings,
+  getDateFromFile,
+} from "obsidian-daily-notes-interface";
 import { hideTitleField, Settings } from "./settings";
 
 export const updateTitle = StateEffect.define<void>();
@@ -71,13 +81,29 @@ function shouldHide(cache: CachedMetadata, settings: Settings) {
   return false;
 }
 
-export function getTitleForView(app: App, settings: Settings, view: MarkdownView) {
+function isDailyNote(file: TFile) {
+  const settings = getDailyNoteSettings();
+
+  if (file && settings.folder && file.path.startsWith(settings.folder)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function getTitleForView(
+  app: App,
+  settings: Settings,
+  view: MarkdownView
+) {
   const frontmatterKey = settings.titleMetadataField;
 
-  let title = view.file?.basename;
+  const file = view.file;
 
-  if (frontmatterKey && view.file) {
-    const cache = app.metadataCache.getFileCache(view.file);
+  let title = file?.basename;
+
+  if (frontmatterKey && file) {
+    const cache = app.metadataCache.getFileCache(file);
 
     if (shouldHide(cache, settings)) {
       return "";
@@ -85,6 +111,12 @@ export function getTitleForView(app: App, settings: Settings, view: MarkdownView
 
     if (cache?.frontmatter && cache.frontmatter[frontmatterKey]) {
       title = cache.frontmatter[frontmatterKey];
+    } else if (settings.dailyNoteTitleFormat && isDailyNote(file)) {
+      const date = getDateFromFile(file, "day");
+
+      if (date) {
+        return date.format(settings.dailyNoteTitleFormat);
+      }
     }
   }
 

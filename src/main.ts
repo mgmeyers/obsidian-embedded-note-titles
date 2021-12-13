@@ -1,6 +1,4 @@
-import {
-  EditorView,
-} from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import {
   App,
   MarkdownView,
@@ -9,6 +7,7 @@ import {
   Setting,
   TFile,
 } from "obsidian";
+import { getDailyNoteSettings } from "obsidian-daily-notes-interface";
 import {
   LegacyCodemirrorHeadingsManager,
   PreviewHeadingsManager,
@@ -199,6 +198,53 @@ class EmbeddedNoteTitlesSettings extends PluginSettingTab {
             this.plugin.settings.hideOnMetadataField = value;
             await this.plugin.saveSettings();
           });
+      });
+
+    new Setting(containerEl)
+      .setName("Daily note title format")
+      .then((setting) => {
+        setting.addMomentFormat((mf) => {
+          setting.descEl.appendChild(
+            createFragment((frag) => {
+              frag.appendText(
+                "This format will be used when displaying titles of daily notes."
+              );
+              frag.createEl("br");
+              frag.appendText("For more syntax, refer to ");
+              frag.createEl(
+                "a",
+                {
+                  text: "format reference",
+                  href: "https://momentjs.com/docs/#/displaying/format/",
+                },
+                (a) => {
+                  a.setAttr("target", "_blank");
+                }
+              );
+              frag.createEl("br");
+              frag.appendText("Your current syntax looks like this: ");
+              mf.setSampleEl(frag.createEl("b", { cls: "u-pop" }));
+              frag.createEl("br");
+            })
+          );
+
+          const dailyNoteSettings = getDailyNoteSettings();
+          const defaultFormat = dailyNoteSettings.format || "YYYY-MM-DD";
+
+          mf.setPlaceholder(defaultFormat);
+          mf.setDefaultFormat(defaultFormat);
+
+          if (this.plugin.settings.dailyNoteTitleFormat) {
+            mf.setValue(this.plugin.settings.dailyNoteTitleFormat);
+          }
+
+          mf.onChange(async (value) => {
+            this.plugin.settings.dailyNoteTitleFormat = value
+              ? value
+              : undefined;
+            await this.plugin.saveSettings();
+          });
+        });
       });
   }
 }
