@@ -165,9 +165,9 @@ class EmbeddedNoteTitlesSettings extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName("Metadata field as title")
+      .setName("Frontmatter field as title")
       .setDesc(
-        "When a file contains this metadatafield, it will be used as the embedded title"
+        "When a file contains this frontmatter field, it will be used as the embedded title"
       )
       .addText((text) => {
         text
