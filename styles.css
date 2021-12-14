@@ -78,4 +78,5 @@ h1.cm-line.embedded-note-title {
 h1.embedded-note-title.embedded-note-title__hidden,
 h1.cm-line.embedded-note-title.embedded-note-title__hidden {
   padding-bottom: 0 !important;
+  line-height: 0;
 }

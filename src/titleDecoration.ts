@@ -42,7 +42,7 @@ class HeaderWidget extends WidgetType {
     return createEl("h1", {
       text: this.heading,
       cls: `cm-line embedded-note-title embedded-note-title__edit${
-        this.heading === "" ? " embedded-note-title__hidden" : ""
+        this.heading === " " ? " embedded-note-title__hidden" : ""
       }`,
     });
   }
@@ -61,9 +61,10 @@ function shouldHide(cache: CachedMetadata, settings: Settings) {
     if (!cache.headings) return false;
 
     if (
+      cache.sections &&
+      cache.sections[0]?.type === "heading" &&
       cache.headings &&
-      cache.headings[0]?.level === 1 &&
-      cache.headings[0]?.position.start.line === 0
+      cache.headings[0]?.level === 1
     ) {
       return true;
     }
@@ -106,7 +107,7 @@ export function getTitleForView(
     const cache = app.metadataCache.getFileCache(file);
 
     if (shouldHide(cache, settings)) {
-      return "";
+      return " ";
     }
 
     if (cache?.frontmatter && cache.frontmatter[frontmatterKey]) {
@@ -120,7 +121,7 @@ export function getTitleForView(
     }
   }
 
-  return title || "";
+  return title || " ";
 }
 
 export function buildTitleDecoration(app: App, getSettings: () => Settings) {
