@@ -11,6 +11,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@codemirror/gutter": "^0.19.9",
     "@codemirror/state": "^0.19.6",
     "@codemirror/view": "^0.19.29",
     "@rollup/plugin-commonjs": "^15.1.0",

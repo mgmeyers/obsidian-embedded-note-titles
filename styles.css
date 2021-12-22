@@ -61,6 +61,7 @@ settings:
   --embedded-note-title-padding-bottom: 0;
   --embedded-note-title-padding-top: 0;
   --embedded-note-title-weight: 800;
+  --embedded-note-title-height: 0;
 }
 
 h1.embedded-note-title,
@@ -79,4 +80,8 @@ h1.embedded-note-title.embedded-note-title__hidden,
 h1.cm-line.embedded-note-title.embedded-note-title__hidden {
   padding-bottom: 0 !important;
   line-height: 0;
+}
+
+.markdown-source-view.mod-cm6 .cm-gutters {
+  padding-top: var(--embedded-note-title-height);
 }

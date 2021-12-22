@@ -1,15 +1,5 @@
-import {
-  EditorState,
-  StateEffect,
-  StateField,
-  Transaction,
-} from "@codemirror/state";
-import {
-  Decoration,
-  DecorationSet,
-  EditorView,
-  WidgetType,
-} from "@codemirror/view";
+import { StateEffect } from "@codemirror/state";
+import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import {
   App,
   CachedMetadata,
@@ -22,31 +12,9 @@ import {
   getDateFromFile,
 } from "obsidian-daily-notes-interface";
 import { hideTitleField, Settings } from "./settings";
+import EmbeddedNoteTitlesPlugin from "./main";
 
 export const updateTitle = StateEffect.define<void>();
-
-class HeaderWidget extends WidgetType {
-  heading: string;
-  displayName: string;
-
-  constructor(heading: string) {
-    super();
-    this.heading = heading;
-  }
-
-  ignoreEvent() {
-    return true;
-  }
-
-  toDOM() {
-    return createEl("h1", {
-      text: this.heading,
-      cls: `cm-line embedded-note-title embedded-note-title__edit${
-        this.heading === " " ? " embedded-note-title__hidden" : ""
-      }`,
-    });
-  }
-}
 
 function shouldHide(cache: CachedMetadata, settings: Settings) {
   if (
@@ -124,33 +92,119 @@ export function getTitleForView(
   return title || " ";
 }
 
-export function buildTitleDecoration(app: App, getSettings: () => Settings) {
-  const buildWidget = (state: EditorState) => {
-    const view = state.field(editorViewField);
-
-    return Decoration.set(
-      Decoration.widget({
-        block: true,
-        widget: new HeaderWidget(getTitleForView(app, getSettings(), view)),
-      }).range(0)
-    );
-  };
-
+export function buildTitleDecoration(
+  plugin: EmbeddedNoteTitlesPlugin,
+  getSettings: () => Settings
+) {
   return [
-    StateField.define<DecorationSet>({
-      create: (state: EditorState) => {
-        return buildWidget(state);
-      },
-      update: (effects: DecorationSet, tr: Transaction) => {
-        for (let e of tr.effects) {
-          if (e.is(updateTitle)) {
-            return buildWidget(tr.state);
+    ViewPlugin.fromClass(
+      class {
+        header: HTMLElement;
+        title: string;
+        debounce: number;
+
+        constructor(view: EditorView) {
+          this.title = getTitleForView(
+            plugin.app,
+            getSettings(),
+            view.state.field(editorViewField)
+          );
+
+          this.header = createEl("h1", {
+            text: this.title,
+            cls: `cm-line embedded-note-title embedded-note-title__edit${
+              this.title === " " ? " embedded-note-title__hidden" : ""
+            }`,
+            attr: {
+              id: "title-cm6-" + Math.random().toString(36).substr(2, 9),
+            },
+          });
+
+          view.contentDOM.before(this.header);
+
+          plugin.observeTitle(this.header, (entry) => {
+            if (entry.borderBoxSize[0]) {
+              this.adjustGutter(entry.borderBoxSize[0].blockSize);
+            } else {
+              this.adjustGutter(entry.contentRect.height);
+            }
+          });
+
+          this.adjustGutter(this.header.getBoundingClientRect().height);
+        }
+
+        adjustGutter(padding: number) {
+          clearTimeout(this.debounce);
+
+          this.debounce = window.setTimeout(() => {
+            const dom = this.header?.closest(".markdown-source-view");
+
+            if (!dom) return;
+
+            let currentStyle = dom.getAttr("style");
+
+            if (!currentStyle) {
+              currentStyle = "";
+            }
+
+            if (currentStyle.contains("--embedded-note")) {
+              currentStyle = currentStyle.replace(
+                /--embedded-note-title-height: \d+px;/g,
+                ""
+              );
+            }
+
+            if (currentStyle && !currentStyle.endsWith(";")) {
+              currentStyle += `;--embedded-note-title-height: ${padding}px;`;
+            } else {
+              currentStyle += `--embedded-note-title-height: ${padding}px;`;
+            }
+
+            dom.setAttribute("style", currentStyle);
+          }, 10);
+        }
+
+        revertGutter() {
+          const dom = this.header.closest(".markdown-source-view");
+          let currentStyle = dom.getAttr("style");
+
+          if (currentStyle && currentStyle.contains("--embedded-note")) {
+            currentStyle = currentStyle.replace(
+              /--embedded-note-title-height: \d+px;/g,
+              ""
+            );
+
+            dom.setAttribute("style", currentStyle);
           }
         }
 
-        return effects;
-      },
-      provide: (f) => EditorView.decorations.from(f),
-    }),
+        update(viewUpdate: ViewUpdate) {
+          viewUpdate.transactions.forEach((tr) => {
+            for (let e of tr.effects) {
+              if (e.is(updateTitle)) {
+                this.title = getTitleForView(
+                  plugin.app,
+                  getSettings(),
+                  tr.state.field(editorViewField)
+                );
+                this.header.setText(this.title);
+
+                if (this.title === " ") {
+                  this.header.classList.add("embedded-note-title__hidden");
+                } else {
+                  this.header.classList.remove("embedded-note-title__hidden");
+                }
+              }
+            }
+          });
+        }
+
+        destroy() {
+          plugin.unobserveTitle(this.header);
+          this.header.remove();
+          this.header = null;
+        }
+      }
+    ),
   ];
 }

@@ -22,6 +22,9 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
   legacyCodemirrorHeadingsManager: LegacyCodemirrorHeadingsManager;
   previewHeadingsManager: PreviewHeadingsManager;
 
+  observer: ResizeObserver;
+  observedTitles: Map<HTMLElement, (entry: ResizeObserverEntry) => void>;
+
   async onload() {
     document.body.classList.add("embedded-note-titles");
 
@@ -39,7 +42,16 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
       this.legacyCodemirrorHeadingsManager =
         new LegacyCodemirrorHeadingsManager(getSettings);
     } else {
-      this.registerEditorExtension(buildTitleDecoration(this.app, getSettings));
+      this.observedTitles = new Map();
+      this.observer = new ResizeObserver((entries) => {
+        entries.forEach((entry) => {
+          if (this.observedTitles.has(entry.target as HTMLElement)) {
+            this.observedTitles.get(entry.target as HTMLElement)(entry);
+          }
+        });
+      });
+
+      this.registerEditorExtension(buildTitleDecoration(this, getSettings));
 
       const notifyFileChange = (file: TFile) => {
         const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
@@ -91,6 +103,16 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
           this.legacyCodemirrorHeadingsManager?.createHeadings(this.app);
           this.previewHeadingsManager.createHeadings(this.app);
         }, 0);
+
+        setTimeout(() => {
+          this.observedTitles.forEach((_, el) => {
+            if (!document.getElementById(el.id)) {
+              console.log('removing', el.id)
+              this.unobserveTitle(el);
+              el.remove();
+            }
+          });
+        }, 100);
       })
     );
 
@@ -120,6 +142,23 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
 
     this.legacyCodemirrorHeadingsManager?.cleanup();
     this.previewHeadingsManager.cleanup();
+    this.observer.disconnect();
+    this.observedTitles.forEach((_, el) => {
+      el.remove();
+    });
+    this.observedTitles.clear();
+  }
+
+  observeTitle(el: HTMLElement, cb: (entry: ResizeObserverEntry) => void) {
+    this.observedTitles.set(el, cb);
+    this.observer.observe(el, {
+      box: "border-box",
+    });
+  }
+
+  unobserveTitle(el: HTMLElement) {
+    this.observedTitles.delete(el);
+    this.observer.unobserve(el);
   }
 
   async loadSettings() {
