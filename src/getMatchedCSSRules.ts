@@ -138,7 +138,7 @@ export function getMatchedCSSRules(element: HTMLElement): CSSStyleRule[] {
       }
 
       // check if this element matches this rule's selector
-      if (element.matches(rule.selectorText)) {
+      if (rule.selectorText && element.matches(rule.selectorText)) {
         // push the rule to the results set
         result.push(rule);
       }
