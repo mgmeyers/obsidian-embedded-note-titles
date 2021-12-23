@@ -107,7 +107,6 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
         setTimeout(() => {
           this.observedTitles.forEach((_, el) => {
             if (!document.getElementById(el.id)) {
-              console.log('removing', el.id)
               this.unobserveTitle(el);
               el.remove();
             }
