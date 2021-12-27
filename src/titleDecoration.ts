@@ -110,6 +110,17 @@ export function buildTitleDecoration(
             view.state.field(editorViewField)
           );
 
+          // This shouldn't happen, but just to be safe, remove any straggling titles
+          view.contentDOM.parentElement.childNodes.forEach((node) => {
+            if (
+              node instanceof HTMLElement &&
+              node.hasClass("embedded-note-title")
+            ) {
+              plugin.unobserveTitle(node);
+              node.remove();
+            }
+          });
+
           this.header = createEl("h1", {
             text: this.title,
             cls: `cm-line embedded-note-title embedded-note-title__edit${

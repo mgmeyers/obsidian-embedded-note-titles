@@ -104,14 +104,20 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
           this.previewHeadingsManager.createHeadings(this.app);
         }, 0);
 
-        setTimeout(() => {
-          this.observedTitles.forEach((_, el) => {
-            if (!document.getElementById(el.id)) {
-              this.unobserveTitle(el);
-              el.remove();
-            }
-          });
-        }, 100);
+        if (!this.isLegacyEditor) {
+          setTimeout(() => {
+            this.observedTitles.forEach((_, el) => {
+              if (
+                this.app.workspace
+                  .getLeavesOfType("markdown")
+                  .every((leaf) => !leaf.view.containerEl.find(`#${el.id}`))
+              ) {
+                this.unobserveTitle(el);
+                el.remove();
+              }
+            });
+          }, 100);
+        }
       })
     );
 
@@ -156,8 +162,10 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
   }
 
   unobserveTitle(el: HTMLElement) {
-    this.observedTitles.delete(el);
-    this.observer.unobserve(el);
+    if (this.observedTitles.has(el)) {
+      this.observedTitles.delete(el);
+      this.observer.unobserve(el);
+    }
   }
 
   async loadSettings() {
