@@ -2,8 +2,13 @@
 
 This plugin embeds the note title at the top of each note in both preview and edit mode. This plugin does not modify notes, and the title is not a part of the document itself.
 
-<img src="https://raw.githubusercontent.com/mgmeyers/obsidian-embedded-note-titles/main/screenshots/example01.gif" alt="Example output of plugin" />
+**Features:**
 
+- The embedded titles can be styles using the Style Settings plugin
+- Titles can be hidden or overridden by a file's frontmatter
+- Titles can be hidden if when a level 1 heading is present
+
+<img src="https://raw.githubusercontent.com/mgmeyers/obsidian-embedded-note-titles/main/screenshots/example01.gif" alt="Example output of plugin" />
 
 ### Note
 

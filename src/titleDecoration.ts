@@ -50,16 +50,6 @@ function shouldHide(cache: CachedMetadata, settings: Settings) {
   return false;
 }
 
-function isDailyNote(file: TFile) {
-  const settings = getDailyNoteSettings();
-
-  if (file && settings.folder && file.path.startsWith(settings.folder)) {
-    return true;
-  }
-
-  return false;
-}
-
 export function getTitleForView(
   app: App,
   settings: Settings,
@@ -80,7 +70,7 @@ export function getTitleForView(
 
     if (cache?.frontmatter && cache.frontmatter[frontmatterKey]) {
       title = cache.frontmatter[frontmatterKey];
-    } else if (settings.dailyNoteTitleFormat && isDailyNote(file)) {
+    } else if (settings.dailyNoteTitleFormat) {
       const date = getDateFromFile(file, "day");
 
       if (date) {
