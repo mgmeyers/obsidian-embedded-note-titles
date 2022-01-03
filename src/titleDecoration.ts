@@ -69,13 +69,15 @@ export function getTitleForView(
     }
 
     if (cache?.frontmatter && cache.frontmatter[frontmatterKey]) {
-      title = cache.frontmatter[frontmatterKey];
-    } else if (settings.dailyNoteTitleFormat) {
-      const date = getDateFromFile(file, "day");
+      return cache.frontmatter[frontmatterKey] || title || " ";
+    }
+  } 
+  
+  if (settings.dailyNoteTitleFormat) {
+    const date = getDateFromFile(file, "day");
 
-      if (date) {
-        return date.format(settings.dailyNoteTitleFormat);
-      }
+    if (date) {
+      return date.format(settings.dailyNoteTitleFormat);
     }
   }
 
