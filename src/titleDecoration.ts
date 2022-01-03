@@ -61,7 +61,7 @@ export function getTitleForView(
 
   let title = file?.basename;
 
-  if (frontmatterKey && file) {
+  if (file && frontmatterKey) {
     const cache = app.metadataCache.getFileCache(file);
 
     if (shouldHide(cache, settings)) {
@@ -73,7 +73,7 @@ export function getTitleForView(
     }
   } 
   
-  if (settings.dailyNoteTitleFormat) {
+  if (file && settings.dailyNoteTitleFormat) {
     const date = getDateFromFile(file, "day");
 
     if (date) {
