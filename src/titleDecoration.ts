@@ -56,13 +56,13 @@ export function getTitleForView(
   view: MarkdownView
 ) {
   const frontmatterKey = settings.titleMetadataField;
-
+  
   const file = view.file;
-
+  
+  const cache = app.metadataCache.getFileCache(file);
   let title = file?.basename;
 
   if (file && frontmatterKey) {
-    const cache = app.metadataCache.getFileCache(file);
 
     if (shouldHide(cache, settings)) {
       return " ";
@@ -71,8 +71,8 @@ export function getTitleForView(
     if (cache?.frontmatter && cache.frontmatter[frontmatterKey]) {
       return cache.frontmatter[frontmatterKey] || title || " ";
     }
-  } 
-  
+  }
+
   if (file && settings.dailyNoteTitleFormat) {
     const date = getDateFromFile(file, "day");
 
@@ -81,7 +81,19 @@ export function getTitleForView(
     }
   }
 
+
   return title || " ";
+}
+
+export function getIconMeta(
+  app: App,
+  settings: Settings,
+  view: MarkdownView
+) {
+  const file = view.file;
+  const cache = app.metadataCache.getFileCache(file);
+  if (!cache?.frontmatter?.icon) return false
+  return cache.frontmatter.icon
 }
 
 export function buildTitleDecoration(

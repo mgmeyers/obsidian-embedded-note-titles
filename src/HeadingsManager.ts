@@ -1,7 +1,7 @@
 import { App, WorkspaceLeaf, debounce, MarkdownView } from "obsidian";
 import { getMatchedCSSRules } from "./getMatchedCSSRules";
 import { Settings } from "./settings";
-import { getTitleForView } from "./titleDecoration";
+import { getIconMeta, getTitleForView } from "./titleDecoration";
 
 interface RefSizing {
   width?: string;
@@ -335,6 +335,12 @@ export class PreviewHeadingsManager {
       leaf.view as MarkdownView
     );
 
+    const icon = getIconMeta(
+      leaf.view.app,
+      this.getSettings(),
+      leaf.view as MarkdownView
+    );
+
     const previewContent = leaf.view.containerEl.getElementsByClassName(
       "markdown-preview-view"
     );
@@ -346,7 +352,9 @@ export class PreviewHeadingsManager {
     let previewEl: HTMLDivElement;
 
     for (let i = 0, len = previewContent.length; i < len; i++) {
-      if (previewContent[i].parentElement.parentElement.hasClass("view-content")) {
+      if (
+        previewContent[i].parentElement.parentElement.hasClass("view-content")
+      ) {
         previewEl = previewContent[i] as HTMLDivElement;
         break;
       }
@@ -367,6 +375,14 @@ export class PreviewHeadingsManager {
 
       if (title === "") {
         h1Preview.classList.add("embedded-note-title__hidden");
+      }
+
+      if (icon) {
+        console.log("ICON", icon)
+        const iconEl = document.createElement("span")
+        iconEl.classList.add("embedded-note-title-icon")
+        iconEl.setText(icon)
+        h1Preview.prepend(iconEl)
       }
 
       previewEl.prepend(h1Preview);
