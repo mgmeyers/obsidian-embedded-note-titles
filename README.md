@@ -4,7 +4,7 @@ This plugin embeds the note title at the top of each note in both preview and ed
 
 **Features:**
 
-- The embedded titles can be styles using the Style Settings plugin
+- The embedded titles can be styled using the Style Settings plugin
 - Titles can be hidden or overridden by a file's frontmatter
 - Titles can be hidden if when a level 1 heading is present
 
@@ -15,19 +15,23 @@ This plugin embeds the note title at the top of each note in both preview and ed
 In general, this plugin attempts to size the titles to align with the note content. Some themes may have styling that conflicts with these calculations. If you notice misalignment between the title and the note, the titles can be styled via css like so:
 
 ```css
-.embedded-note-titles .markdown-preview-view > h1 {
-  /* ...preview mode styles... */
+h1.embedded-note-title {
+  /* ...reading mode styles... */
 }
 
-.embedded-note-titles .is-readable-line-width.markdown-preview-view > h1 {
-  /* ...preview mode styles with readable line width enabled... */
+h1.cm-line.embedded-note-title {
+  /* ... live preview / edit mode styles ... */
+}
+```
+
+You may also need to account for readable line length:
+
+```css
+.is-readable-line-width h1.embedded-note-title {
+  /* ...reading mode styles... */
 }
 
-.embedded-note-titles .CodeMirror-scroll > h1 {
-  /* ...edit mode styles... */
-}
-
-.embedded-note-titles .is-readable-line-width .CodeMirror-scroll > h1 {
-  /* ...edit mode styles with readable line width enabled... */
+.is-readable-line-width h1.cm-line.embedded-note-title {
+  /* ...reading mode styles... */
 }
 ```

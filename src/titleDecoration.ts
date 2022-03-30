@@ -1,16 +1,7 @@
 import { StateEffect } from "@codemirror/state";
 import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import {
-  App,
-  CachedMetadata,
-  editorViewField,
-  MarkdownView,
-  TFile,
-} from "obsidian";
-import {
-  getDailyNoteSettings,
-  getDateFromFile,
-} from "obsidian-daily-notes-interface";
+import { App, CachedMetadata, editorViewField, MarkdownView } from "obsidian";
+import { getDateFromFile } from "obsidian-daily-notes-interface";
 import { hideTitleField, Settings } from "./settings";
 import EmbeddedNoteTitlesPlugin from "./main";
 
@@ -61,18 +52,22 @@ export function getTitleForView(
 
   let title = file?.basename;
 
-  if (file && frontmatterKey) {
+  if (file) {
     const cache = app.metadataCache.getFileCache(file);
 
     if (shouldHide(cache, settings)) {
       return " ";
     }
 
-    if (cache?.frontmatter && cache.frontmatter[frontmatterKey]) {
+    if (
+      frontmatterKey &&
+      cache?.frontmatter &&
+      cache.frontmatter[frontmatterKey]
+    ) {
       return cache.frontmatter[frontmatterKey] || title || " ";
     }
-  } 
-  
+  }
+
   if (file && settings.dailyNoteTitleFormat) {
     const date = getDateFromFile(file, "day");
 
@@ -185,11 +180,17 @@ export function buildTitleDecoration(
           viewUpdate.transactions.forEach((tr) => {
             for (let e of tr.effects) {
               if (e.is(updateTitle)) {
-                this.title = getTitleForView(
+                const newTitle = getTitleForView(
                   plugin.app,
                   getSettings(),
                   tr.state.field(editorViewField)
                 );
+
+                if (this.title === newTitle) {
+                  return;
+                }
+
+                this.title = newTitle;
                 this.header.setText(this.title);
 
                 if (this.title === " ") {

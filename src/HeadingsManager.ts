@@ -1,3 +1,4 @@
+import { debug } from "console";
 import { App, WorkspaceLeaf, debounce, MarkdownView } from "obsidian";
 import { getMatchedCSSRules } from "./getMatchedCSSRules";
 import { Settings } from "./settings";
