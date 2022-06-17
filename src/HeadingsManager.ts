@@ -337,7 +337,6 @@ export class PreviewHeadingsManager {
 
     const icon = getIconMeta(
       leaf.view.app,
-      this.getSettings(),
       leaf.view as MarkdownView
     );
 

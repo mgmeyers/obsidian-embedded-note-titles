@@ -87,7 +87,6 @@ export function getTitleForView(
 
 export function getIconMeta(
   app: App,
-  settings: Settings,
   view: MarkdownView
 ) {
   const file = view.file;
