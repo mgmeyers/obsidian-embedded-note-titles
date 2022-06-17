@@ -1,7 +1,7 @@
-import { debug } from "console";
-import { App, WorkspaceLeaf, debounce, MarkdownView } from "obsidian";
-import { getMatchedCSSRules } from "./getMatchedCSSRules";
+import { App, MarkdownView, WorkspaceLeaf, debounce } from "obsidian";
+
 import { Settings } from "./settings";
+import { getMatchedCSSRules } from "./getMatchedCSSRules";
 import { getTitleForView } from "./titleDecoration";
 
 interface RefSizing {
