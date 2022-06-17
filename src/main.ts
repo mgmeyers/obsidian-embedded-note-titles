@@ -72,8 +72,9 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
       this.registerEvent(
         this.app.metadataCache.on("changed", (file) => {
           const frontmatterKey = this.settings.titleMetadataField;
+          const hideOnH1 = this.settings.hideOnH1
 
-          if (frontmatterKey) {
+          if (frontmatterKey || hideOnH1) {
             notifyFileChange(file);
           }
         })
@@ -83,11 +84,12 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
     this.registerEvent(
       this.app.metadataCache.on("changed", (file) => {
         const frontmatterKey = this.settings.titleMetadataField;
+        const hideOnH1 = this.settings.hideOnH1
 
-        if (frontmatterKey) {
+        if (frontmatterKey || hideOnH1) {
           const cache = this.app.metadataCache.getFileCache(file);
 
-          if (cache?.frontmatter && cache.frontmatter[frontmatterKey]) {
+          if (hideOnH1 || frontmatterKey && cache?.frontmatter && cache.frontmatter[frontmatterKey]) {
             setTimeout(() => {
               this.legacyCodemirrorHeadingsManager?.createHeadings(this.app);
               this.previewHeadingsManager.createHeadings(this.app);

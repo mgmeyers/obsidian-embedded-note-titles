@@ -3,7 +3,8 @@ const ID_RE = /#[\w-]+/g;
 const CLASS_RE = /\.[\w-]+/g;
 const ATTR_RE = /\[[^\]]+\]/g;
 const PSEUDO_CLASSES_RE = /\:(?!not)[\w-]+(\(.*\))?/g;
-const PSEUDO_ELEMENTS_RE = /\:\:?(after|before|first-letter|first-line|selection)/g;
+const PSEUDO_ELEMENTS_RE =
+  /\:\:?(after|before|first-letter|first-line|selection)/g;
 
 // convert an array-like object to array
 function toArray(list: any) {
@@ -23,7 +24,11 @@ function getSheetRules(stylesheet: CSSStyleSheet) {
   )
     return [];
   // get the style rules of this sheet
-  return toArray(stylesheet.cssRules);
+  try {
+    return toArray(stylesheet.cssRules);
+  } catch {
+    return [];
+  }
 }
 
 function _find(string: string, re: RegExp) {
@@ -99,17 +104,14 @@ function sortBySpecificity(element: HTMLElement, rules: CSSStyleRule[]) {
       if (b.parentStyleSheet.href) bScore -= 1;
     }
 
-    return (
-      aScore -
-      bScore
-    );
+    return aScore - bScore;
   }
 
   return rules.sort(compareSpecificity);
 }
 
 export function getMatchedCSSRules(element: HTMLElement): CSSStyleRule[] {
-  let styleSheets = toArray(window.document.styleSheets)
+  let styleSheets = toArray(window.document.styleSheets);
   let sheet;
   let rules;
   let rule;
