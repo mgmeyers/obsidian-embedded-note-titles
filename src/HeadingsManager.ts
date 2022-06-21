@@ -1,8 +1,8 @@
-import { debug } from "console";
-import { App, WorkspaceLeaf, debounce, MarkdownView } from "obsidian";
-import { getMatchedCSSRules } from "./getMatchedCSSRules";
+import { App, MarkdownView, WorkspaceLeaf, debounce } from "obsidian";
+
 import { Settings } from "./settings";
 import { getIconMeta, getTitleForView } from "./titleDecoration";
+import { getMatchedCSSRules } from "./getMatchedCSSRules";
 
 interface RefSizing {
   width?: string;
