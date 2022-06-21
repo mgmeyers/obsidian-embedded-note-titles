@@ -47,9 +47,10 @@ export function getTitleForView(
   view: MarkdownView
 ) {
   const frontmatterKey = settings.titleMetadataField;
-
+  
   const file = view.file;
-
+  
+  const cache = app.metadataCache.getFileCache(file);
   let title = file?.basename;
 
   if (file) {
@@ -76,7 +77,18 @@ export function getTitleForView(
     }
   }
 
+
   return title || " ";
+}
+
+export function getIconMeta(
+  app: App,
+  view: MarkdownView
+) {
+  const file = view.file;
+  const cache = app.metadataCache.getFileCache(file);
+  if (!cache?.frontmatter?.icon) return false
+  return cache.frontmatter.icon
 }
 
 export function buildTitleDecoration(

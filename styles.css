@@ -85,3 +85,7 @@ h1.cm-line.embedded-note-title.embedded-note-title__hidden {
 .markdown-source-view.mod-cm6 .cm-gutters {
   padding-top: var(--embedded-note-title-height);
 }
+
+.embedded-note-title-icon {
+  margin-right: 0.5em;
+}
