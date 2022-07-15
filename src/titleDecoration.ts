@@ -47,7 +47,6 @@ export function getTitleForView(
   view: MarkdownView
 ) {
   const frontmatterKey = settings.titleMetadataField;
-
   const file = view.file;
 
   let title = file?.basename;
@@ -118,7 +117,9 @@ export function buildTitleDecoration(
             },
           });
 
-          view.contentDOM.before(this.header);
+          setTimeout(() => {
+            view.contentDOM.before(this.header);
+          })
 
           plugin.observeTitle(this.header, (entry) => {
             if (entry.borderBoxSize[0]) {

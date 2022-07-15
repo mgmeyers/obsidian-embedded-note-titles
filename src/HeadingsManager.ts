@@ -1,4 +1,4 @@
-import { App, MarkdownView, WorkspaceLeaf, debounce } from "obsidian";
+import { App, MarkdownView, WorkspaceLeaf } from "obsidian";
 
 import { Settings } from "./settings";
 import { getMatchedCSSRules } from "./getMatchedCSSRules";
@@ -101,199 +101,6 @@ function applyRefStyles(heading: HTMLElement, ref: RefSizing | null) {
   }
 }
 
-export class LegacyCodemirrorHeadingsManager {
-  headings: {
-    [id: string]: {
-      leaf: WorkspaceLeaf;
-      resizeWatcher?: ResizeObserver;
-    };
-  } = {};
-
-  codeMirrorSizerRef: RefSizing | null = null;
-  codeMirrorSizerInvalid: boolean = true;
-
-  getSettings: () => Settings;
-
-  constructor(getSettings: () => Settings) {
-    this.getSettings = getSettings;
-  }
-
-  getCodeMirrorSizerStyles() {
-    const sizerEl = document.getElementsByClassName("CodeMirror-sizer");
-    const lineEl = document.getElementsByClassName("CodeMirror-line");
-
-    if (sizerEl.length && lineEl.length) {
-      const sizer = sizerEl[0] as HTMLElement;
-
-      const { marginLeft, paddingRight, borderRightWidth } = sizer.style;
-
-      // If codemirror hasn't applied styles to the div yet, let's consider it
-      // invalid so we can check it again later
-      if (marginLeft !== "0px" && paddingRight !== "0px") {
-        this.codeMirrorSizerInvalid = false;
-      }
-
-      const inline: RefSizing = {
-        marginLeft,
-        marginRight: borderRightWidth,
-        paddingRight,
-      };
-
-      const sizerRef = getRefSizing(sizer);
-
-      const line = lineEl[0] as HTMLElement;
-      const lineRef = getRefSizing(line);
-
-      // Combine inline styles with CSS styles
-      this.codeMirrorSizerRef = {
-        ...inline,
-        ...sizerRef,
-      };
-
-      if (lineRef.paddingLeft) {
-        this.codeMirrorSizerRef.paddingLeft = this.codeMirrorSizerRef
-          .paddingLeft
-          ? `calc(${this.codeMirrorSizerRef.paddingLeft} + ${lineRef.paddingLeft})`
-          : lineRef.paddingLeft;
-      }
-
-      if (lineRef.paddingRight) {
-        this.codeMirrorSizerRef.paddingRight = this.codeMirrorSizerRef
-          .paddingRight
-          ? `calc(${this.codeMirrorSizerRef.paddingRight} + ${lineRef.paddingRight})`
-          : lineRef.paddingRight;
-      }
-    }
-  }
-
-  // Once the codemirror heading styles have been validated, loop through and update everything
-  updateCodeMirrorHeadings() {
-    Object.keys(this.headings).forEach((id) => {
-      const h1Edit = document.getElementById(`${id}-edit`);
-      applyRefStyles(h1Edit, this.codeMirrorSizerRef);
-    });
-  }
-
-  // Clean up headings once a pane has been closed or the plugin has been disabled
-  removeHeading(id: string) {
-    if (!this.headings[id]) return;
-
-    const h1Edit = document.getElementById(`${id}-edit`);
-
-    if (h1Edit) h1Edit.remove();
-
-    this.headings[id].resizeWatcher?.disconnect();
-
-    delete this.headings[id].resizeWatcher;
-    delete this.headings[id];
-  }
-
-  createHeading(id: string, leaf: WorkspaceLeaf) {
-    // CodeMirror adds margin and padding only after the editor is visible
-    if (
-      this.codeMirrorSizerInvalid &&
-      leaf.getViewState().state?.mode === "source"
-    ) {
-      this.getCodeMirrorSizerStyles();
-
-      if (!this.codeMirrorSizerInvalid) {
-        this.updateCodeMirrorHeadings();
-      }
-    }
-
-    if (this.headings[id]) return;
-
-    const title = getTitleForView(
-      leaf.view.app,
-      this.getSettings(),
-      leaf.view as MarkdownView
-    );
-
-    const viewContent =
-      leaf.view.containerEl.getElementsByClassName("CodeMirror-scroll");
-
-    const lines =
-      leaf.view.containerEl.getElementsByClassName("CodeMirror-lines");
-
-    if (!this.codeMirrorSizerRef) {
-      this.getCodeMirrorSizerStyles();
-    }
-
-    if (viewContent.length) {
-      // Create the codemirror heading
-      const editEl = viewContent[0] as HTMLDivElement;
-      const h1Edit = document.createElement("h1");
-
-      applyRefStyles(h1Edit, this.codeMirrorSizerRef);
-
-      h1Edit.setText(title);
-      h1Edit.id = `${id}-edit`;
-      h1Edit.classList.add("embedded-note-title", "embedded-note-title__edit");
-
-      if (title === "") {
-        h1Edit.classList.add("embedded-note-title__hidden");
-      }
-
-      editEl.prepend(h1Edit);
-
-      const onResize = debounce(
-        (entries: any) => {
-          if (lines.length) {
-            const linesEl = lines[0] as HTMLDivElement;
-            const height = Math.ceil(entries[0].borderBoxSize[0].blockSize);
-
-            linesEl.style.paddingTop = `${height}px`;
-            h1Edit.style.marginBottom = `-${height}px`;
-          }
-        },
-        20,
-        true
-      );
-
-      // We need to push the content down when the pane resizes so the heading
-      // doesn't cover the content
-      const resizeWatcher = new (window as any).ResizeObserver(onResize);
-
-      resizeWatcher.observe(h1Edit);
-
-      this.headings[id] = { leaf, resizeWatcher };
-    }
-  }
-
-  // Generate a unique ID for a leaf
-  getLeafId(leaf: WorkspaceLeaf) {
-    return "title-" + Math.random().toString(36).substr(2, 9);
-  }
-
-  // Iterate through all leafs and generate headings if needed
-  createHeadings(app: App) {
-    const seen: { [k: string]: boolean } = {};
-
-    app.workspace.getLeavesOfType("markdown").forEach((leaf) => {
-      const id = this.getLeafId(leaf);
-
-      if (id) {
-        this.createHeading(id, leaf);
-        seen[id] = true;
-      }
-    });
-
-    Object.keys(this.headings).forEach((id) => {
-      if (!seen[id]) {
-        this.removeHeading(id);
-      }
-    });
-  }
-
-  cleanup() {
-    this.codeMirrorSizerRef = null;
-
-    Object.keys(this.headings).forEach((id) => {
-      this.removeHeading(id);
-    });
-  }
-}
-
 export class PreviewHeadingsManager {
   headings: {
     [id: string]: {
@@ -308,8 +115,8 @@ export class PreviewHeadingsManager {
     this.getSettings = getSettings;
   }
 
-  getPreviewSizerStyles() {
-    const el = document.getElementsByClassName("markdown-preview-sizer");
+  getPreviewSizerStyles(doc: Document) {
+    const el = doc.getElementsByClassName("markdown-preview-sizer");
 
     if (el.length) {
       this.previewSizerRef = getRefSizing(el[0] as HTMLElement);
@@ -320,7 +127,8 @@ export class PreviewHeadingsManager {
   removeHeading(id: string) {
     if (!this.headings[id]) return;
 
-    const h1Preview = document.getElementById(`${id}-preview`);
+    const doc = this.headings[id].leaf.view.containerEl.ownerDocument;
+    const h1Preview = doc.getElementById(`${id}-preview`);
 
     if (h1Preview) h1Preview.remove();
 
@@ -329,6 +137,8 @@ export class PreviewHeadingsManager {
 
   createHeading(id: string, leaf: WorkspaceLeaf) {
     if (this.headings[id]) return;
+
+    const doc = leaf.view.containerEl.ownerDocument;
 
     const title = getTitleForView(
       leaf.view.app,
@@ -341,13 +151,15 @@ export class PreviewHeadingsManager {
     );
 
     if (!this.previewSizerRef) {
-      this.getPreviewSizerStyles();
+      this.getPreviewSizerStyles(doc);
     }
 
     let previewEl: HTMLDivElement;
 
     for (let i = 0, len = previewContent.length; i < len; i++) {
-      if (previewContent[i].parentElement.parentElement.hasClass("view-content")) {
+      if (
+        previewContent[i].parentElement.parentElement.hasClass("view-content")
+      ) {
         previewEl = previewContent[i] as HTMLDivElement;
         break;
       }
@@ -355,7 +167,7 @@ export class PreviewHeadingsManager {
 
     if (previewEl) {
       // Create the preview heading
-      const h1Preview = document.createElement("h1");
+      const h1Preview = doc.createElement("h1");
 
       applyRefStyles(h1Preview, this.previewSizerRef);
 
@@ -378,7 +190,7 @@ export class PreviewHeadingsManager {
 
   // Generate a unique ID for a leaf
   getLeafId(leaf: WorkspaceLeaf) {
-    return "title-" + Math.random().toString(36).substr(2, 9);
+    return "title-" + Math.random().toString(36).substring(2, 9);
   }
 
   // Iterate through all leafs and generate headings if needed

@@ -12,16 +12,12 @@ function toArray(list: any) {
 }
 
 // handles extraction of `cssRules` as an `Array` from a stylesheet or something that behaves the same
-function getSheetRules(stylesheet: CSSStyleSheet) {
-  var sheet_media = stylesheet.media && stylesheet.media.mediaText;
+function getSheetRules(win: Window, stylesheet: CSSStyleSheet) {
+  const sheet_media = stylesheet.media && stylesheet.media.mediaText;
   // if this sheet is disabled skip it
   if (stylesheet.disabled) return [];
   // if this sheet's media is specified and doesn't match the viewport then skip it
-  if (
-    sheet_media &&
-    sheet_media.length &&
-    !window.matchMedia(sheet_media).matches
-  )
+  if (sheet_media && sheet_media.length && !win.matchMedia(sheet_media).matches)
     return [];
   // get the style rules of this sheet
   try {
@@ -32,16 +28,17 @@ function getSheetRules(stylesheet: CSSStyleSheet) {
 }
 
 function _find(string: string, re: RegExp) {
-  var matches = string.match(re);
+  const matches = string.match(re);
   return matches ? matches.length : 0;
 }
 
 // calculates the specificity of a given `selector`
 function calculateScore(selector: string) {
-  var score = [0, 0, 0],
-    parts = selector.split(" "),
-    part,
-    match;
+  const score = [0, 0, 0];
+  const parts = selector.split(" ");
+  let part;
+  let match;
+
   //TODO: clean the ':not' part since the last ELEMENT_RE will pick it up
   while (((part = parts.shift()), typeof part == "string")) {
     // find all pseudo-elements
@@ -77,10 +74,10 @@ function calculateScore(selector: string) {
 
 // returns the heights possible specificity score an element can get from a give rule's selectorText
 function getSpecificityScore(element: HTMLElement, selectorText: string) {
-  var selectors = selectorText.split(","),
-    selector,
-    score,
-    result = 0;
+  const selectors = selectorText.split(",");
+  let selector;
+  let score;
+  let result = 0;
 
   while ((selector = selectors.shift())) {
     if (element.matches(selector)) {
@@ -111,7 +108,8 @@ function sortBySpecificity(element: HTMLElement, rules: CSSStyleRule[]) {
 }
 
 export function getMatchedCSSRules(element: HTMLElement): CSSStyleRule[] {
-  let styleSheets = toArray(window.document.styleSheets);
+  const win = element.ownerDocument.defaultView;
+  let styleSheets = toArray(element.ownerDocument.styleSheets);
   let sheet;
   let rules;
   let rule;
@@ -121,20 +119,20 @@ export function getMatchedCSSRules(element: HTMLElement): CSSStyleRule[] {
   // we iterate them from the beginning to follow proper cascade order
   while ((sheet = styleSheets.shift())) {
     // get the style rules of this sheet
-    rules = getSheetRules(sheet);
+    rules = getSheetRules(win, sheet);
     // loop the rules in order of appearance
     while ((rule = rules.shift())) {
       // if this is an @import rule
       if (rule.styleSheet) {
         // insert the imported stylesheet's rules at the beginning of this stylesheet's rules
-        rules = getSheetRules(rule.styleSheet).concat(rules);
+        rules = getSheetRules(win, rule.styleSheet).concat(rules);
         // and skip this rule
         continue;
       }
       // if there's no stylesheet attribute BUT there IS a media attribute it's a media rule
       else if (rule.media) {
         // insert the contained rules of this media rule to the beginning of this stylesheet's rules
-        rules = getSheetRules(rule).concat(rules);
+        rules = getSheetRules(win, rule).concat(rules);
         // and skip it
         continue;
       }

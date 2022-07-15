@@ -8,10 +8,7 @@ import {
   TFile,
 } from "obsidian";
 import { getDailyNoteSettings } from "obsidian-daily-notes-interface";
-import {
-  LegacyCodemirrorHeadingsManager,
-  PreviewHeadingsManager,
-} from "./HeadingsManager";
+import { PreviewHeadingsManager } from "./HeadingsManager";
 import { Settings } from "./settings";
 import { buildTitleDecoration, updateTitle } from "./titleDecoration";
 
@@ -19,7 +16,6 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
   settings: Settings;
   isLegacyEditor: boolean;
 
-  legacyCodemirrorHeadingsManager: LegacyCodemirrorHeadingsManager;
   previewHeadingsManager: PreviewHeadingsManager;
 
   observer: ResizeObserver;
@@ -38,10 +34,7 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
     this.previewHeadingsManager = new PreviewHeadingsManager(getSettings);
     this.isLegacyEditor = (this.app.vault as any).getConfig("legacyEditor");
 
-    if (this.isLegacyEditor) {
-      this.legacyCodemirrorHeadingsManager =
-        new LegacyCodemirrorHeadingsManager(getSettings);
-    } else {
+    if (!this.isLegacyEditor) {
       this.observedTitles = new Map();
       this.observer = new ResizeObserver((entries) => {
         entries.forEach((entry) => {
@@ -72,7 +65,7 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
       this.registerEvent(
         this.app.metadataCache.on("changed", (file) => {
           const frontmatterKey = this.settings.titleMetadataField;
-          const hideOnH1 = this.settings.hideOnH1
+          const hideOnH1 = this.settings.hideOnH1;
 
           if (frontmatterKey || hideOnH1) {
             notifyFileChange(file);
@@ -84,14 +77,18 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
     this.registerEvent(
       this.app.metadataCache.on("changed", (file) => {
         const frontmatterKey = this.settings.titleMetadataField;
-        const hideOnH1 = this.settings.hideOnH1
+        const hideOnH1 = this.settings.hideOnH1;
 
         if (frontmatterKey || hideOnH1) {
           const cache = this.app.metadataCache.getFileCache(file);
 
-          if (hideOnH1 || frontmatterKey && cache?.frontmatter && cache.frontmatter[frontmatterKey]) {
+          if (
+            hideOnH1 ||
+            (frontmatterKey &&
+              cache?.frontmatter &&
+              cache.frontmatter[frontmatterKey])
+          ) {
             setTimeout(() => {
-              this.legacyCodemirrorHeadingsManager?.createHeadings(this.app);
               this.previewHeadingsManager.createHeadings(this.app);
             }, 0);
           }
@@ -102,7 +99,6 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
     this.registerEvent(
       this.app.workspace.on("layout-change", () => {
         setTimeout(() => {
-          this.legacyCodemirrorHeadingsManager?.createHeadings(this.app);
           this.previewHeadingsManager.createHeadings(this.app);
         }, 0);
 
@@ -126,28 +122,23 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
     // Listen for CSS changes so we can recalculate heading styles
     this.registerEvent(
       this.app.workspace.on("css-change", () => {
-        this.legacyCodemirrorHeadingsManager?.cleanup();
         this.previewHeadingsManager.cleanup();
 
         setTimeout(() => {
-          this.legacyCodemirrorHeadingsManager?.createHeadings(this.app);
           this.previewHeadingsManager.createHeadings(this.app);
         }, 0);
       })
     );
 
-    this.app.workspace.layoutReady
-      ? this.app.workspace.trigger("layout-change")
-      : this.app.workspace.onLayoutReady(() => {
-          // Trigger layout-change to ensure headings are created when the app loads
-          this.app.workspace.trigger("layout-change");
-        });
+    this.app.workspace.onLayoutReady(() => {
+      // Trigger layout-change to ensure headings are created when the app loads
+      this.app.workspace.trigger("layout-change");
+    });
   }
 
   onunload() {
     document.body.classList.remove("embedded-note-titles");
 
-    this.legacyCodemirrorHeadingsManager?.cleanup();
     this.previewHeadingsManager.cleanup();
     this.observer.disconnect();
     this.observedTitles.forEach((_, el) => {
@@ -187,11 +178,9 @@ export default class EmbeddedNoteTitlesPlugin extends Plugin {
       });
     }
 
-    this.legacyCodemirrorHeadingsManager?.cleanup();
     this.previewHeadingsManager.cleanup();
 
     setTimeout(() => {
-      this.legacyCodemirrorHeadingsManager?.createHeadings(this.app);
       this.previewHeadingsManager.createHeadings(this.app);
     }, 0);
 
